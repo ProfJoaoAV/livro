@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Aventura de Piri e o Modo Condicional</title>
+    <!-- Importar a fonte Nunito do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            /* Usar a nova fonte Nunito */
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #6d6d6d; /* Fundo mais escuro para o livro se destacar */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        h1 {
+            color: #f0f4f8; /* Mudar para cor clara para ser visível no fundo escuro */
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        /* O contentor principal do livro - agora mais largo */
+        .book-container {
+            width: 90%;
+            max-width: 1100px; /* Mais largo para o layout de 2 páginas */
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); /* Sombra mais forte */
+            overflow: hidden;
+            border: 1px solid #b0b0b0; /* Borda mais subtil */
+            position: relative;
+        }
+
+        /* --- NOVO: Efeito de "vinco" do livro --- */
+        .book-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px; /* Largura da sombra do vinco */
+            background: linear-gradient(to right, 
+                rgba(0, 0, 0, 0) 0%,
+                rgba(0, 0, 0, 0.08) 40%,
+                rgba(0, 0, 0, 0.08) 60%,
+                rgba(0, 0, 0, 0) 100%
+            );
+            z-index: 10; /* Assegura que está por cima das imagens */
+            pointer-events: none; /* Não bloqueia o rato */
+        }
+        /* -------------------------------------- */
+
+
+        /* --- NOVOS ESTILOS DE PÁGINA --- */
+
+        /* Estilo base para páginas de "capa" e "fim" (1 coluna) */
+        .page {
+            display: none;
+            padding: 2.5em;
+            box-sizing: border-box;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page.active {
+            display: block;
+        }
+        /* Imagem da capa/fim centrada */
+        .page img {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            margin: 1em auto;
+            border-radius: 8px;
+        }
+
+        /* Estilo para o "livro aberto" (2 colunas) */
+        .page-spread {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page-spread.active {
+            display: flex; /* Mostra as duas colunas lado a lado */
+        }
+        
+        .page-left, .page-right {
+            flex: 1; /* Cada página ocupa 50% */
+            padding: 1.5em; /* Reduzido de 2.5em para dar mais espaço */
+            box-sizing: border-box;
+        }
+
+        /* Página Esquerda (Imagem) */
+        .page-left {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: -5px 0 15px -5px rgba(0,0,0,0.1); /* Sombra exterior "curva" */
+        }
+        .page-left img {
+            width: 100%;
+            height: auto;
+            max-height: 80vh; /* Aumentado de 65vh para 80vh */
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Página Direita (Texto) */
+        .page-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 5px 0 15px -5px rgba(0,0,0,0.1); /* Sombra exterior "curva" */
+        }
+        .page-right p {
+            font-size: 1.6em; /* Letras maiores */
+            line-height: 1.7; /* Mais espaço entre linhas */
+            text-align: left;
+            margin-bottom: 1em;
+        }
+        /* Estilo para Diálogos */
+        .page-right p.dialogue {
+            font-style: italic;
+            font-weight: bold;
+            color: #4a6988;
+        }
+        
+        .page audio,
+        .page-right audio {
+            width: 100%;
+            margin-top: 20px;
+            display: none; /* Adicionado para esconder os controlos */
+        }
+        /* ---------------------------------- */
+
+
+        /* Botões de navegação */
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 1100px; /* Alinhar com o livro */
+        }
+
+        .nav-button {
+            background-color: #5b8bc0;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Nunito', sans-serif; /* Usar a nova fonte */
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-button:hover {
+            background-color: #4a729e;
+        }
+
+        .nav-button:disabled {
+            background-color: #b0c4de;
+            cursor: not-allowed;
+        }
+
+        /* Animação de fade-in */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* --- Media Query para Mobile --- */
+        @media (max-width: 800px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            /* Em mobile, o "livro aberto" fica vertical */
+            .page-spread.active {
+                flex-direction: column;
+            }
+            
+            /* Desativa os efeitos de livro em mobile */
+            .book-container::before {
+                display: none;
+            }
+            .page-left, .page-right {
+                padding: 1.5em;
+                box-shadow: none;
+            }
+            
+            .page-left img {
+                max-height: 50vh; /* Ajusta a altura da imagem */
+            }
+            
+            .page-right p {
+                font-size: 1.2em; /* Letra ligeiramente mais pequena em mobile */
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <h1>A Aventura de Piri e o Modo Condicional</h1>
+
+    <div class="book-container">
+        
+        <!-- URL Base para os seus recursos -->
+        <!-- https://profjoaoav.github.io/livro/ -->
+        
+        <!-- Capa (Layout de 1 página) -->
+        <div class="page active" id="page-0">
+            <img src="https://profjoaoav.github.io/livro/capa.png" alt="A capa do livro, mostrando Piri e Caru a olhar para a flor da orquestra">
+            <!-- Sem áudio na capa -->
+        </div>
+
+        <!-- Página 1 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-1">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina1.png" alt="Piri e Caru a conversar na floresta">
+            </div>
+            <div class="page-right">
+                <p>Piri, o pirilampo, tinha o sonho de entrar para a Grande Orquestra de Pirilampos. O seu amigo, Caru, o carocha, abanava a cabeça.</p>
+                <p class="dialogue">"Se o teu brilho fosse uma estrela, ele poderia ser um pouco mais forte, Piri."</p>
+                <audio id="audio-1" src="https://profjoaoav.github.io/livro/pagina1.wav" controls></audio>
+            </div>
+        </div>
+        
+        <!-- Página 2 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-2">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina2.png" alt="Caru a apontar para a flor da orquestra">
+            </div>
+            <div class="page-right">
+                <p>O Clube da Orquestra era uma grande flor noturna que só abria para os vagalumes mais talentosos. Caru alertou:</p>
+                <p class="dialogue">"É noite de teste! Se estivesse a chover, de certeza que eles não fariam o teste hoje."</p>
+                <audio id="audio-2" src="https://profjoaoav.github.io/livro/pagina2.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 3 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-3">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina3.png" alt="Piri ativa o botão condicional com a palavra 'DIRIA'">
+            </div>
+            <div class="page-right">
+                <p>Piri suspirou.</p>
+                <p class="dialogue">"Se eu fosse mais corajoso, eu diria que a minha luz é a mais bonita de todas!"</p>
+                <p>Ele desejava tanto que o 'diria' saiu com um brilho extra, acendendo o botão "Modo Condicional" numa folha.</p>
+                <audio id="audio-3" src="https://profjoaoav.github.io/livro/pagina3.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 4 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-4">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina4.png" alt="Caru assustado com os novos insetos 'traria' e 'Deverias'">
+            </div>
+            <div class="page-right">
+                <p>Caru, que era muito prático, torceu o nariz.</p>
+                <p class="dialogue">"Eu não traria a minha luz para este teste. Parecem pedidos arriscados, Piri. Deverias pedir para dares uma volta no meu capacete novo – isso sim é um desejo seguro."</p>
+                <audio id="audio-4" src="https://profjoaoav.github.io/livro/pagina4.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 5 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-5">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina5.png" alt="Piri a imaginar-se como um farol">
+            </div>
+            <div class="page-right">
+                <p>Piri ignorou o conselho.</p>
+                <p class="dialogue">"E se, em vez de uma luz, o meu abdómen fosse um farol? Eu iluminaria o caminho de toda a floresta!"</p>
+                <p>A sua imaginação voou, criando um feixe de luz gigante.</p>
+                <audio id="audio-5" src="https://profjoaoav.github.io/livro/pagina5.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 6 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-6">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina6.png" alt="Mestre Lume a espreitar da flor para Piri">
+            </div>
+            <div class="page-right">
+                <p>Um dos vagalumes da orquestra, o mestre Lume, olhou da flor para o Piri.</p>
+                <p class="dialogue">"Quem imaginaria que um pequeno pirilampo teria um desejo tão grande!"</p>
+                <p>A surpresa era clara no seu tom, e no verbo.</p>
+                <audio id="audio-6" src="https://profjoaoav.github.io/livro/pagina6.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 7 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-7">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina7.png" alt="Piri a fazer uma vénia ao Mestre Lume">
+            </div>
+            <div class="page-right">
+                <p>Piri sentiu as asas a tremer.</p>
+                <p class="dialogue">"Mestre Lume! Eu gostaria muito de mostrar o que o meu brilho pode fazer, se me dessem uma oportunidade. O meu sonho seria..."</p>
+                <audio id="audio-7" src="https://profjoaoav.github.io/livro/pagina7.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 8 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-8">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina8.png" alt="Mestre Lume a explicar o modo condicional ao Piri">
+            </div>
+            <div class="page-right">
+                <p>Mestre Lume sorriu.</p>
+                <p class="dialogue">"Repara, pequeno Piri. As palavras que terminam em '-ia' — poderia, iluminaria, diria — são o Modo Condicional! Elas mostram a possibilidade, um desejo ou um pedido gentil."</p>
+                <audio id="audio-8" src="https://profjoaoav.github.io/livro/pagina8.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 9 (Layout de 2 páginas) -->
+        <div class="page-spread" id="page-9">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina9.png" alt="Caru e Piri a voar, felizes">
+            </div>
+            <div class="page-right">
+                <p>Caru, o carocha cético, voou até eles.</p>
+                <p class="dialogue">"Então, se o Mestre Lume nos aceitasse, nós trabalharíamos na Orquestra. E se não houvesse mais vaga, nós teríamos que criar a nossa própria banda!"</p>
+                <audio id="audio-9" src="https://profjoaoav.github.io/livro/pagina9.wav" controls></audio>
+            </div>
+        </div>
+
+        <!-- Página 10 (Layout de 2 páginas - Final) -->
+        <div class="page-spread" id="page-10">
+            <div class="page-left">
+                <img src="https://profjoaoav.github.io/livro/pagina10.png" alt="Mestre Lume com Piri e Caru, celebrando o final feliz">
+            </div>
+            <div class="page-right">
+                <p>Mestre Lume riu-se.</p>
+                <p class="dialogue">"Se tivesses uma ideia dessas, a vossa banda seria um sucesso!"</p>
+                <p>Ele ofereceu a Piri um lugar de aprendiz. E para Caru, que agora pensava em todas as possibilidades:</p>
+                <p class="dialogue">"Tu poderias ser o nosso engenheiro de som!"</p>
+                <audio id="audio-10" src="https://profjoaoav.github.io/livro/pagina10.wav" controls></audio>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" id="prev-button" onclick="changePage(-1)" disabled>Anterior</button>
+        <button class="nav-button" id="next-button" onclick="changePage(1)">Seguinte</button>
+    </div>
+
+    <script>
+        let currentPage = 0; // Começa na capa (página 0)
+        const totalPages = 10; // 0 (capa) + 10 (páginas)
+
+        // Função para parar todos os áudios
+        function stopAllAudio() {
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        }
+
+        // Função para mostrar a página e tocar o áudio
+        function showPage(pageNumber) {
+            // Para todos os áudios antes de mudar
+            stopAllAudio();
+
+            // Esconde a página ativa (seja .page ou .page-spread)
+            const activePage = document.querySelector('.page.active, .page-spread.active');
+            if (activePage) {
+                activePage.classList.remove('active');
+            }
+            
+            // Mostra a nova página (pelo ID)
+            const newPage = document.getElementById('page-' + pageNumber);
+            if (newPage) {
+                newPage.classList.add('active');
+            }
+
+            // Toca o áudio da nova página (se existir)
+            const newAudio = document.getElementById('audio-' + pageNumber);
+            if (newAudio) {
+                newAudio.play().catch(error => {
+                    console.warn("Reprodução automática bloqueada pelo navegador. O utilizador deve carregar no play.", error);
+                });
+            }
+
+            // Atualiza os botões
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+
+            prevButton.disabled = (pageNumber === 0);
+            
+            // Lógica do botão "Seguinte"
+            if (pageNumber === totalPages) {
+                // Na última página
+                nextButton.disabled = false;
+                nextButton.textContent = "Voltar à Capa"; // Mudar o texto
+            } else {
+                // Em qualquer outra página
+                nextButton.disabled = false;
+                nextButton.textContent = "Seguinte"; // Texto padrão
+            }
+        }
+
+        // Função chamada pelos botões
+        function changePage(direction) {
+            if (direction === 1) {
+                // Clicar "Seguinte"
+                if (currentPage === totalPages) {
+                    currentPage = 0; // Na última página, volta para a capa
+                } else {
+                    currentPage++; // Avança normalmente
+                }
+            } else if (direction === -1) {
+                // Clicar "Anterior"
+                if (currentPage > 0) {
+                    currentPage--; // Retrocede normalmente
+                }
+            }
+            showPage(currentPage);
+        }
+    </script>
+
+</body>
+</html>
