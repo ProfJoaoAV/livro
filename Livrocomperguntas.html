@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Aventura de Piri e o Modo Condicional</title>
+    <!-- Importar a fonte Nunito do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            /* Usar a nova fonte Nunito */
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #6d6d6d; /* Fundo mais escuro para o livro se destacar */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            padding: 20px 0;
+        }
+
+        h1 {
+            color: #f0f4f8; /* Mudar para cor clara para ser visível no fundo escuro */
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        /* --- VISTAS PRINCIPAIS --- */
+        #book-view, #quiz-view, #results-view {
+            width: 90%;
+            max-width: 1100px; /* Alinhar com o livro */
+            display: none; /* Escondidas por defeito */
+        }
+        #book-view.active, #quiz-view.active, #results-view.active {
+            display: block; /* Mostra a vista ativa */
+        }
+
+        /* --- 1. ESTILOS DO LIVRO --- */
+
+        /* O contentor principal do livro - agora mais largo */
+        .book-container {
+            width: 100%;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); /* Sombra mais forte */
+            overflow: hidden;
+            border: 1px solid #b0b0b0; /* Borda mais subtil */
+            position: relative;
+        }
+
+        /* Efeito de "vinco" do livro */
+        .book-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px; /* Largura da sombra do vinco */
+            background: linear-gradient(to right, 
+                rgba(0, 0, 0, 0) 0%,
+                rgba(0, 0, 0, 0.08) 40%,
+                rgba(0, 0, 0, 0.08) 60%,
+                rgba(0, 0, 0, 0) 100%
+            );
+            z-index: 10; 
+            pointer-events: none; 
+        }
+
+        /* Estilo base para páginas de "capa" e "fim" (1 coluna) */
+        .page {
+            display: none;
+            padding: 2.5em;
+            box-sizing: border-box;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page.active {
+            display: block;
+        }
+        .page img {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            margin: 1em auto;
+            border-radius: 8px;
+        }
+
+        /* Estilo para o "livro aberto" (2 colunas) */
+        .page-spread {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page-spread.active {
+            display: flex; /* Mostra as duas colunas lado a lado */
+        }
+        
+        .page-left, .page-right {
+            flex: 1; /* Cada página ocupa 50% */
+            padding: 1.5em; 
+            box-sizing: border-box;
+        }
+
+        .page-left {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: -5px 0 15px -5px rgba(0,0,0,0.1); 
+        }
+        .page-left img {
+            width: 100%;
+            height: auto;
+            max-height: 80vh; 
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .page-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 5px 0 15px -5px rgba(0,0,0,0.1); 
+        }
+        .page-right p {
+            font-size: 1.6em; 
+            line-height: 1.7; 
+            text-align: left;
+            margin-bottom: 1em;
+        }
+        .page-right p.dialogue {
+            font-style: italic;
+            font-weight: bold;
+            color: #4a6988;
+        }
+        
+        .page audio,
+        .page-right audio {
+            width: 100%;
+            margin-top: 20px;
+            display: none; /* Esconde os controlos */
+        }
+
+        /* Botões de navegação do Livro */
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .nav-button {
+            background-color: #5b8bc0;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Nunito', sans-serif; 
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-button:hover {
+            background-color: #4a729e;
+        }
+
+        .nav-button:disabled {
+            background-color: #b0c4de;
+            cursor: not-allowed;
+        }
+        
+        /* --- 2. ESTILOS DA FICHA (QUIZ) --- */
+        #quiz-view, #results-view {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 1px solid #b0b0b0;
+            padding: 2.5em;
+            margin-top: 20px;
+        }
+        
+        #quiz-form h2 {
+            color: #4a6988;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        
+        #quiz-form h3 {
+            color: #4a6988;
+            margin-top: 40px;
+        }
+        
+        /* Paginação da Ficha */
+        .quiz-page {
+            display: none; /* Esconde todas as páginas da ficha */
+            animation: fadeIn 0.3s;
+        }
+        .quiz-page.active {
+            display: block; /* Mostra só a página ativa */
+        }
+        
+        .question-block {
+            margin-bottom: 2.5em;
+        }
+        
+        .question-block p {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        /* Escolha Múltipla */
+        .options-group label {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .options-group label:hover {
+            background-color: #f4f7fa;
+        }
+        .options-group input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.1);
+        }
+        
+        /* NOVO: Secção Ligar (Matching) */
+        .matching-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Mais espaço para a pergunta */
+            gap: 15px;
+            align-items: center;
+            font-size: 1.1em;
+            max-width: 700px;
+            margin-bottom: 15px; /* Espaço entre cada item de "ligar" */
+        }
+        .matching-group p {
+            font-size: 1.1em;
+            font-weight: normal;
+            margin: 0;
+        }
+        .matching-group select {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1em;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            width: 100%;
+        }
+
+        /* Preenchimento de Espaços */
+        .fill-in-group {
+            font-size: 1.1em;
+            line-height: 1.8; /* Mais espaço entre linhas */
+        }
+        .fill-in-group p {
+            font-size: 1.1em;
+            font-weight: normal;
+            margin-bottom: 15px;
+        }
+        .fill-in-group input[type="text"] {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1em;
+            border: none;
+            border-bottom: 2px solid #5b8bc0;
+            padding: 5px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 150px; /* Tamanho ajustado */
+        }
+        .fill-in-group input[type="text"]:focus {
+            border-bottom-color: #4a6988;
+        }
+
+        /* Navegação da Ficha */
+        .quiz-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .quiz-nav-button {
+            background-color: #5b8bc0;
+            color: white;
+            font-size: 1.1em;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .quiz-nav-button:disabled {
+            background-color: #b0c4de;
+            cursor: not-allowed;
+        }
+        
+        #submit-quiz-button {
+            background-color: #2a9d8f;
+            color: white;
+            font-size: 1.2em;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #submit-quiz-button:hover {
+            background-color: #268a7f;
+        }
+        
+        /* --- 3. ESTILOS DOS RESULTADOS --- */
+        #results-view h2 {
+            color: #4a6988;
+        }
+        
+        #score-summary {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2a9d8f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        #detailed-feedback h3 {
+             color: #4a6988;
+             margin-top: 30px;
+             border-top: 1px solid #eee;
+             padding-top: 20px;
+        }
+        
+        #detailed-feedback p {
+            font-size: 1.1em;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #detailed-feedback span.correct {
+            color: #2a9d8f;
+            font-weight: bold;
+            background-color: #eaf6f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        #detailed-feedback span.incorrect {
+            color: #e76f51;
+            font-weight: bold;
+            background-color: #fdeee9;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        #download-form {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .info-field {
+            margin-bottom: 15px;
+        }
+        .info-field label {
+            font-size: 1.1em;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .info-field input {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1em;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box; /* Garante que o padding não quebra o layout */
+        }
+        
+        #download-results-button {
+            background-color: #e76f51;
+            color: white;
+            font-size: 1.1em;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #download-results-button:hover {
+            background-color: #d16447;
+        }
+
+        /* --- GERAL --- */
+        
+        /* Animação de fade-in */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* --- Media Query para Mobile --- */
+        @media (max-width: 800px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            /* Em mobile, o "livro aberto" fica vertical */
+            .page-spread.active {
+                flex-direction: column;
+            }
+            
+            /* Desativa os efeitos de livro em mobile */
+            .book-container::before {
+                display: none;
+            }
+            .page-left, .page-right {
+                padding: 1.5em;
+                box-shadow: none;
+            }
+            
+            .page-left img {
+                max-height: 50vh; /* Ajusta a altura da imagem */
+            }
+            
+            .page-right p {
+                font-size: 1.2em; /* Letra ligeiramente mais pequena em mobile */
+            }
+            
+            #quiz-view, #results-view {
+                padding: 1.5em;
+            }
+            .page-right p {
+                font-size: 1.3em;
+            }
+            .question-block p {
+                font-size: 1.1em;
+            }
+            
+            .matching-group {
+                grid-template-columns: 1fr; /* Coluna única em mobile */
+                gap: 5px;
+            }
+            .matching-group p {
+                text-align: left; /* Alinhar à esquerda em mobile */
+            }
+            
+            .options-group label, .fill-in-group label {
+                font-size: 1em;
+            }
+            #score-summary {
+                font-size: 1.5em;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <h1>A Aventura de Piri e o Modo Condicional</h1>
+
+    <!-- ======================== 
+         VISTA 1: O LIVRO 
+         ======================== -->
+    <div id="book-view" class="active">
+        <div class="book-container">
+            
+            <!-- URL Base para os seus recursos -->
+            <!-- https://profjoaoav.github.io/livro/ -->
+            
+            <!-- Capa (Layout de 1 página) -->
+            <div class="page active" id="page-0">
+                <img src="https://profjoaoav.github.io/livro/capa.png" alt="A capa do livro, mostrando Piri e Caru a olhar para a flor da orquestra">
+                <!-- Sem áudio na capa -->
+            </div>
+
+            <!-- Página 1 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-1">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina1.png" alt="Piri e Caru a conversar na floresta">
+                </div>
+                <div class="page-right">
+                    <p>Piri, o pirilampo, tinha o sonho de entrar para a Grande Orquestra de Pirilampos. O seu amigo, Caru, o carocha, abanava a cabeça.</p>
+                    <p class="dialogue">"Se o teu brilho fosse uma estrela, ele poderia ser um pouco mais forte, Piri."</p>
+                    <audio id="audio-1" src="https://profjoaoav.github.io/livro/pagina1.wav" controls></audio>
+                </div>
+            </div>
+            
+            <!-- Página 2 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-2">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina2.png" alt="Caru a apontar para a flor da orquestra">
+                </div>
+                <div class="page-right">
+                    <p>O Clube da Orquestra era uma grande flor noturna que só abria para os vagalumes mais talentosos. Caru alertou:</p>
+                    <p class="dialogue">"É noite de teste! Se estivesse a chover, de certeza que eles não fariam o teste hoje."</p>
+                    <audio id="audio-2" src="https://profjoaoav.github.io/livro/pagina2.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 3 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-3">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina3.png" alt="Piri ativa o botão condicional com a palavra 'DIRIA'">
+                </div>
+                <div class="page-right">
+                    <p>Piri suspirou.</p>
+                    <p class="dialogue">"Se eu fosse mais corajoso, eu diria que a minha luz é a mais bonita de todas!"</p>
+                    <p>Ele desejava tanto que o 'diria' saiu com um brilho extra, acendendo o botão "Modo Condicional" numa folha.</p>
+                    <audio id="audio-3" src="https://profjoaoav.github.io/livro/pagina3.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 4 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-4">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina4.png" alt="Caru assustado com os novos insetos 'traria' e 'Deverias'">
+                </div>
+                <div class="page-right">
+                    <p>Caru, que era muito prático, torceu o nariz.</p>
+                    <p class="dialogue">"Eu não traria a minha luz para este teste. Parecem pedidos arriscados, Piri. Deverias pedir para dares uma volta no meu capacete novo – isso sim é um desejo seguro."</p>
+                    <audio id="audio-4" src="https://profjoaoav.github.io/livro/pagina4.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 5 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-5">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina5.png" alt="Piri a imaginar-se como um farol">
+                </div>
+                <div class="page-right">
+                    <p>Piri ignorou o conselho.</p>
+                    <p class="dialogue">"E se, em vez de uma luz, o meu abdómen fosse um farol? Eu iluminaria o caminho de toda a floresta!"</p>
+                    <p>A sua imaginação voou, criando um feixe de luz gigante.</p>
+                    <audio id="audio-5" src="https://profjoaoav.github.io/livro/pagina5.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 6 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-6">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina6.png" alt="Mestre Lume a espreitar da flor para Piri">
+                </div>
+                <div class="page-right">
+                    <p>Um dos vagalumes da orquestra, o mestre Lume, olhou da flor para o Piri.</p>
+                    <p class="dialogue">"Quem imaginaria que um pequeno pirilampo teria um desejo tão grande!"</p>
+                    <p>A surpresa era clara no seu tom, e no verbo.</p>
+                    <audio id="audio-6" src="https://profjoaoav.github.io/livro/pagina6.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 7 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-7">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina7.png" alt="Piri a fazer uma vénia ao Mestre Lume">
+                </div>
+                <div class="page-right">
+                    <p>Piri sentiu as asas a tremer.</p>
+                    <p class="dialogue">"Mestre Lume! Eu gostaria muito de mostrar o que o meu brilho pode fazer, se me dessem uma oportunidade. O meu sonho seria..."</p>
+                    <audio id="audio-7" src="https://profjoaoav.github.io/livro/pagina7.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 8 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-8">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina8.png" alt="Mestre Lume a explicar o modo condicional ao Piri">
+                </div>
+                <div class="page-right">
+                    <p>Mestre Lume sorriu.</p>
+                    <p class="dialogue">"Repara, pequeno Piri. As palavras que terminam em '-ia' — poderia, iluminaria, diria — são o Modo Condicional! Elas mostram a possibilidade, um desejo ou um pedido gentil."</p>
+                    <audio id="audio-8" src="https://profjoaoav.github.io/livro/pagina8.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 9 (Layout de 2 páginas) -->
+            <div class="page-spread" id="page-9">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina9.png" alt="Caru e Piri a voar, felizes">
+                </div>
+                <div class="page-right">
+                    <p>Caru, o carocha cético, voou até eles.</p>
+                    <p class="dialogue">"Então, se o Mestre Lume nos aceitasse, nós trabalharíamos na Orquestra. E se não houvesse mais vaga, nós teríamos que criar a nossa própria banda!"</p>
+                    <audio id="audio-9" src="https://profjoaoav.github.io/livro/pagina9.wav" controls></audio>
+                </div>
+            </div>
+
+            <!-- Página 10 (Layout de 2 páginas - Final) -->
+            <div class="page-spread" id="page-10">
+                <div class="page-left">
+                    <img src="https://profjoaoav.github.io/livro/pagina10.png" alt="Mestre Lume com Piri e Caru, celebrando o final feliz">
+                </div>
+                <div class="page-right">
+                    <p>Mestre Lume riu-se.</p>
+                    <p class="dialogue">"Se tivesses uma ideia dessas, a vossa banda seria um sucesso!"</p>
+                    <p>Ele ofereceu a Piri um lugar de aprendiz. E para Caru, que agora pensava em todas as possibilidades:</p>
+                    <p class="dialogue">"Tu poderias ser o nosso engenheiro de som!"</p>
+                    <audio id="audio-10" src="https://profjoaoav.github.io/livro/pagina10.wav" controls></audio>
+                </div>
+            </div>
+
+        </div> <!-- Fim do .book-container -->
+
+        <div class="navigation">
+            <button class="nav-button" id="prev-button" onclick="changePage(-1)" disabled>Anterior</button>
+            <button class="nav-button" id="next-button" onclick="changePage(1)">Seguinte</button>
+        </div>
+
+    </div> <!-- Fim do #book-view -->
+
+
+    <!-- ======================== 
+         VISTA 2: A FICHA (QUIZ) 
+         ======================== -->
+    <div id="quiz-view">
+        <form id="quiz-form">
+            <h2>Ficha de Compreensão da Leitura</h2>
+            
+            <!-- Página 1 da Ficha: Escolha Múltipla -->
+            <div id="quiz-page-1" class="quiz-page active">
+                <h3>I. Escolha Múltipla (10 perguntas)</h3>
+            
+                <div class="question-block" data-question="q1">
+                    <p>1. Qual era o grande sonho do Piri?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q1" value="a"> Ser um farol para a floresta.</label>
+                        <label><input type="radio" name="q1" value="b"> Entrar para a Grande Orquestra de Pirilampos.</label>
+                        <label><input type="radio" name="q1" value="c"> Dar uma volta no capacete novo do Caru.</label>
+                    </div>
+                </div>
+                
+                <div class="question-block" data-question="q2">
+                    <p>2. Quem é o Caru?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q2" value="a"> O mestre da orquestra.</label>
+                        <label><input type="radio" name="q2" value="b"> Um pirilampo rival do Piri.</label>
+                        <label><input type="radio" name="q2" value="c"> O amigo carocha do Piri.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q3">
+                    <p>3. Onde se reunia a Grande Orquestra?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q3" value="a"> Num cogumelo gigante.</label>
+                        <label><input type="radio" name="q3" value="b"> Numa grande flor noturna.</label>
+                        <label><input type="radio" name="q3" value="c"> Numa folha com um botão.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q4">
+                    <p>4. O que é que o Caru achava do brilho do Piri no início?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q4" value="a"> Que era o mais forte de todos.</label>
+                        <label><input type="radio" name="q4" value="b"> Que podia ser um pouco mais forte.</label>
+                        <label><input type="radio" name="q4" value="c"> Que não tinha brilho nenhum.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q5">
+                    <p>5. Que palavra mágica o Piri disse que ativou o botão?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q5" value="a"> "Diria"</label>
+                        <label><input type="radio" name="q5" value="b"> "Iluminaria"</label>
+                        <label><input type="radio" name="q5" value="c"> "Gostaria"</label>
+                    </div>
+                </div>
+                
+                <div class="question-block" data-question="q6">
+                    <p>6. Qual era o "desejo seguro" que o Caru sugeriu?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q6" value="a"> Pedir para ser aprendiz.</label>
+                        <label><input type="radio" name="q6" value="b"> Criar a sua própria banda.</label>
+                        <label><input type="radio" name="q6" value="c"> Dar uma volta no seu capacete novo.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q7">
+                    <p>7. O que é que o Piri imaginou que o seu abdómen podia ser?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q7" value="a"> Um farol.</label>
+                        <label><input type="radio" name="q7" value="b"> Uma estrela.</label>
+                        <label><input type="radio" name="q7" value="c"> Um botão mágico.</label>
+                    </div>
+                </div>
+                
+                <div class="question-block" data-question="q8">
+                    <p>8. Segundo o Mestre Lume, o Modo Condicional serve para mostrar...</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q8" value="a"> Apenas coisas que já aconteceram.</label>
+                        <label><input type="radio" name="q8" value="b"> Apenas coisas impossíveis.</label>
+                        <label><input type="radio" name="q8" value="c"> Uma possibilidade, um desejo ou um pedido gentil.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q9">
+                    <p>9. O que é que o Caru sugeriu fazer se não houvesse vaga na Orquestra?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q9" value="a"> Voltar para casa e desistir.</label>
+                        <label><input type="radio" name="q9" value="b"> Criar a sua própria banda.</label>
+                        <label><input type="radio" name="q9" value="c"> Tentar o teste noutro dia.</label>
+                    </div>
+                </div>
+
+                <div class="question-block" data-question="q10">
+                    <p>10. No final, que emprego é que o Mestre Lume deu ao Piri?</p>
+                    <div class="options-group">
+                        <label><input type="radio" name="q10" value="a"> Engenheiro de som.</label>
+                        <label><input type="radio" name="q10" value="b"> Mestre da Orquestra.</label>
+                        <label><input type="radio" name="q10" value="c"> Aprendiz.</label>
+                    </div>
+                </div>
+            </div> <!-- Fim #quiz-page-1 -->
+            
+            <!-- Página 2 da Ficha: Ligar Colunas -->
+            <div id="quiz-page-2" class="quiz-page">
+                <h3>II. Ligar Colunas (10 perguntas)</h3>
+                <p style="font-size: 1.1em; font-style: italic; margin-bottom: 20px;">Instruções: Liga a ação ou a fala da esquerda à personagem correta da direita.</p>
+
+                <div class="matching-group" data-question="m1">
+                    <p>1. Tinha o sonho de entrar na Grande Orquestra.</p>
+                    <select id="m1">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+                
+                <div class="matching-group" data-question="m2">
+                    <p>2. Era muito prático e usava um capacete.</p>
+                    <select id="m2">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+                
+                <div class="matching-group" data-question="m3">
+                    <p>3. Explicou o que era o Modo Condicional.</p>
+                    <select id="m3">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+                
+                <div class="matching-group" data-question="m4">
+                    <p>4. Disse "Deverias pedir... uma volta no meu capacete".</p>
+                    <select id="m4">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+
+                <div class="matching-group" data-question="m5">
+                    <p>5. Disse "Eu gostaria muito de mostrar o que posso fazer...".</p>
+                    <select id="m5">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+                
+                <div class="matching-group" data-question="m6">
+                    <p>6. Ofereceu a Piri um lugar de aprendiz.</p>
+                    <select id="m6">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+
+                <div class="matching-group" data-question="m7">
+                    <p>7. Imaginou que o seu abdómen seria um farol.</p>
+                    <select id="m7">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+
+                <div class="matching-group" data-question="m8">
+                    <p>8. Sugeriu que eles teriam de criar a sua própria banda.</p>
+                    <select id="m8">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+
+                <div class="matching-group" data-question="m9">
+                    <p>9. Disse "Quem imaginaria que..."</p>
+                    <select id="m9">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+                
+                <div class="matching-group" data-question="m10">
+                    <p>10. Tornou-se o "engenheiro de som".</p>
+                    <select id="m10">
+                        <option value="">-- Escolhe --</option>
+                        <option value="piri">Piri</option>
+                        <option value="caru">Caru</option>
+                        <option value="mestre-lume">Mestre Lume</option>
+                    </select>
+                </div>
+            </div> <!-- Fim #quiz-page-2 -->
+
+            <!-- Página 3 da Ficha: Completar Espaços -->
+            <div id="quiz-page-3" class="quiz-page">
+                <h3>III. Completar Espaços (10 perguntas)</h3>
+                <p style="font-size: 1.1em; font-style: italic; margin-bottom: 20px;">Instruções: Completa as frases com a forma correta do verbo no Modo Condicional (ou outra forma, se necessário).</p>
+                
+                <div class="fill-in-group">
+                    <p>1. As palavras que terminam em "-ia" (como "poderia") pertencem ao Modo <input type="text" id="f1">.</p>
+                    <p>2. O Piri imaginou que (iluminar) <input type="text" id="f2"> o caminho de toda a floresta.</p>
+                    <p>3. O Caru disse que não (trazer) <input type="text" id="f3"> a sua luz para o teste.</p>
+                    <p>4. Se eu tivesse um capacete, eu (dar) <input type="text" id="f4"> uma volta.</p>
+                    <p>5. O Piri disse ao Mestre Lume que (gostar) <input type="text" id="f5"> muito de uma oportunidade.</p>
+                    <p>6. O Mestre Lume disse que o Caru (poder) <input type="text" id="f6"> ser o engenheiro de som.</p>
+                    <p>7. Se chovesse, eles não (fazer) <input type="text" id="f7"> o teste nesse dia.</p>
+                    <p>8. Se o Piri (ser) <input type="text" id="f8"> mais corajoso, ele (dizer) <input type="text" id="f9"> a verdade. (Duas respostas nesta frase!)</p>
+                    <p>9. O Caru disse que eles (ter) <input type="text" id="f10"> de criar uma banda se não houvesse vaga.</p>
+                    <p>10. Quem (imaginar) <input type="text" id="f11"> que um pirilampo teria um desejo tão grande?</p>
+                </div>
+            </div> <!-- Fim #quiz-page-3 -->
+            
+            <!-- Navegação da Ficha -->
+            <div class="quiz-navigation">
+                <button type="button" id="quiz-prev-button" class="quiz-nav-button" onclick="changeQuizPage(-1)" disabled>Anterior</button>
+                <button type="button" id="quiz-next-button" class="quiz-nav-button" onclick="changeQuizPage(1)">Seguinte</button>
+                <button type="submit" id="submit-quiz-button" style="display: none;">Submeter Ficha</button>
+            </div>
+            
+        </form>
+    </div> <!-- Fim do #quiz-view -->
+
+    <!-- ======================== 
+         VISTA 3: OS RESULTADOS 
+         ======================== -->
+    <div id="results-view">
+        <h2>Resultados da Ficha</h2>
+        
+        <p id="score-summary">Acertaste 0 em 30 perguntas.</p>
+        
+        <h3>Feedback Detalhado:</h3>
+        <div id="detailed-feedback">
+            <!-- O feedback será inserido aqui pelo JavaScript -->
+        </div>
+        
+        <form id="download-form">
+            <h3>Registar e Descarregar Resultados</h3>
+            <p>Preenche os teus dados para descarregar o ficheiro .txt e enviar ao teu professor.</p>
+            <div class="info-field">
+                <label for="student-name">Nome:</label>
+                <input type="text" id="student-name" required>
+            </div>
+            <div class="info-field">
+                <label for="student-year">Ano:</label>
+                <input type="text" id="student-year" required>
+            </div>
+            <div class="info-field">
+                <label for="student-class">Turma:</label>
+                <input type="text" id="student-class" required>
+            </div>
+            
+            <button type="button" id="download-results-button">Descarregar Resultados (.txt)</button>
+        </form>
+        
+    </div> <!-- Fim do #results-view -->
+
+
+    <script>
+        // --- LÓGICA DE NAVEGAÇÃO DO LIVRO ---
+        let currentPage = 0; // Começa na capa (página 0)
+        const totalBookPages = 10; // 0 (capa) + 10 (páginas)
+
+        // Função para parar todos os áudios
+        function stopAllAudio() {
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        }
+
+        // Função para mostrar a página e tocar o áudio
+        function showPage(pageNumber) {
+            // Para todos os áudios antes de mudar
+            stopAllAudio();
+
+            // Esconde a página ativa (seja .page ou .page-spread)
+            const activePage = document.querySelector('.page.active, .page-spread.active');
+            if (activePage) {
+                activePage.classList.remove('active');
+            }
+            
+            // Mostra a nova página (pelo ID)
+            const newPage = document.getElementById('page-' + pageNumber);
+            if (newPage) {
+                newPage.classList.add('active');
+            }
+
+            // Toca o áudio da nova página (se existir)
+            const newAudio = document.getElementById('audio-' + pageNumber);
+            if (newAudio) {
+                // O play() pode falhar se o utilizador não interagiu com a página
+                newAudio.play().catch(error => {
+                    // O aviso na consola é normal e esperado
+                    console.warn("Reprodução automática bloqueada pelo navegador.", error);
+                });
+            }
+
+            // Atualiza os botões
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+
+            prevButton.disabled = (pageNumber === 0);
+            
+            // Lógica do botão "Seguinte"
+            if (pageNumber === totalBookPages) {
+                // Na última página
+                nextButton.disabled = false;
+                nextButton.textContent = "Iniciar Ficha de Leitura"; // Mudar o texto
+            } else {
+                // Em qualquer outra página
+                nextButton.disabled = false;
+                nextButton.textContent = "Seguinte"; // Texto padrão
+            }
+        }
+
+        // Função chamada pelos botões do Livro
+        function changePage(direction) {
+            if (direction === 1) {
+                // Clicar "Seguinte"
+                if (currentPage === totalBookPages) {
+                    // Na última página, em vez de voltar à capa, vai para o quiz
+                    showView('quiz-view');
+                    // Garante que o quiz começa na página 1
+                    showQuizPage(1); 
+                } else {
+                    currentPage++; // Avança normalmente
+                    showPage(currentPage);
+                }
+            } else if (direction === -1) {
+                // Clicar "Anterior"
+                if (currentPage > 0) {
+                    currentPage--; // Retrocede normalmente
+                }
+                showPage(currentPage);
+            }
+        }
+
+        // --- LÓGICA DE NAVEGAÇÃO DAS VISTAS ---
+        function showView(viewId) {
+            // Esconde todas as vistas
+            document.getElementById('book-view').classList.remove('active');
+            document.getElementById('quiz-view').classList.remove('active');
+            document.getElementById('results-view').classList.remove('active');
+            
+            // Mostra a vista pedida
+            document.getElementById(viewId).classList.add('active');
+            
+            // Põe a página no topo
+            window.scrollTo(0, 0);
+        }
+        
+        // --- LÓGICA DO QUIZ (COM PAGINAÇÃO) ---
+        
+        let currentQuizPage = 1;
+        const totalQuizPages = 3;
+
+        function showQuizPage(pageNumber) {
+            // Esconde a página ativa da ficha
+            const activeQuizPage = document.querySelector('.quiz-page.active');
+            if (activeQuizPage) {
+                activeQuizPage.classList.remove('active');
+            }
+            
+            // Mostra a nova página da ficha
+            document.getElementById('quiz-page-' + pageNumber).classList.add('active');
+
+            // Atualiza os botões da ficha
+            document.getElementById('quiz-prev-button').disabled = (pageNumber === 1);
+            document.getElementById('quiz-next-button').style.display = (pageNumber === totalQuizPages) ? 'none' : 'inline-block';
+            document.getElementById('submit-quiz-button').style.display = (pageNumber === totalQuizPages) ? 'inline-block' : 'none';
+        }
+
+        function changeQuizPage(direction) {
+            currentQuizPage += direction;
+            showQuizPage(currentQuizPage);
+        }
+
+        
+        // Definições das Perguntas e Respostas
+        
+        const mcQuestions = [
+            { id: 'q1', answer: 'b', text: 'Qual era o grande sonho do Piri?', correctText: 'Entrar para a Grande Orquestra de Pirilampos.' },
+            { id: 'q2', answer: 'c', text: 'Quem é o Caru?', correctText: 'O amigo carocha do Piri.' },
+            { id: 'q3', answer: 'b', text: 'Onde se reunia a Grande Orquestra?', correctText: 'Numa grande flor noturna.' },
+            { id: 'q4', answer: 'b', text: 'O que é que o Caru achava do brilho do Piri no início?', correctText: 'Que podia ser um pouco mais forte.' },
+            { id: 'q5', answer: 'a', text: 'Que palavra mágica o Piri disse que ativou o botão?', correctText: '"Diria"' },
+            { id: 'q6', answer: 'c', text: 'Qual era o "desejo seguro" que o Caru sugeriu?', correctText: 'Dar uma volta no seu capacete novo.' },
+            { id: 'q7', answer: 'a', text: 'O que é que o Piri imaginou que o seu abdómen podia ser?', correctText: 'Um farol.' },
+            { id: 'q8', answer: 'c', text: 'Segundo o Mestre Lume, o Modo Condicional serve para mostrar...', correctText: 'Uma possibilidade, um desejo ou um pedido gentil.' },
+            { id: 'q9', answer: 'b', text: 'O que é que o Caru sugeriu fazer se não houvesse vaga na Orquestra?', correctText: 'Criar a sua própria banda.' },
+            { id: 'q10', answer: 'c', text: 'No final, que emprego é que o Mestre Lume deu ao Piri?', correctText: 'Aprendiz.' }
+        ];
+
+        const matchQuestions = [
+            { id: 'm1', answer: 'piri', text: 'Tinha o sonho de entrar na Grande Orquestra.' },
+            { id: 'm2', answer: 'caru', text: 'Era muito prático e usava um capacete.' },
+            { id: 'm3', answer: 'mestre-lume', text: 'Explicou o que era o Modo Condicional.' },
+            { id: 'm4', answer: 'caru', text: 'Disse "Deverias pedir... uma volta no meu capacete".' },
+            { id: 'm5', answer: 'piri', text: 'Disse "Eu gostaria muito de mostrar o que posso fazer...".' },
+            { id: 'm6', answer: 'mestre-lume', text: 'Ofereceu a Piri um lugar de aprendiz.' },
+            { id: 'm7', answer: 'piri', text: 'Imaginou que o seu abdómen seria um farol.' },
+            { id: 'm8', answer: 'caru', text: 'Sugeriu que eles teriam de criar a sua própria banda.' },
+            { id: 'm9', answer: 'mestre-lume', text: 'Disse "Quem imaginaria que..."' },
+            { id: 'm10', answer: 'caru', text: 'Tornou-se o "engenheiro de som".' }
+        ];
+        
+        // Pergunta 8 tem 2 respostas (f8, f9). Pergunta 9 é f10. Pergunta 10 é f11.
+        const fillQuestions = [
+            { id: 'f1', answer: 'condicional', text: '...pertencem ao Modo ____.' },
+            { id: 'f2', answer: 'iluminaria', text: '...ele (iluminar) ____ o caminho...' },
+            { id: 'f3', answer: 'traria', text: '...não (trazer) ____ a sua luz...' },
+            { id: 'f4', answer: 'daria', text: '...eu (dar) ____ uma volta.' },
+            { id: 'f5', answer: 'gostaria', text: '...que (gostar) ____ muito...' },
+            { id: 'f6', answer: 'poderia', text: '...Caru (poder) ____ ser o engenheiro...' },
+            { id: 'f7', answer: 'fariam', text: '...eles não (fazer) ____ o teste...' },
+            { id: 'f8-f9', answer: ['fosse', 'diria'], text: '...Se o Piri (ser) ____ mais corajoso, ele (dizer) ____ a verdade.' }, // Resposta dupla
+            { id: 'f10', answer: 'teriam', text: '...eles (ter) ____ de criar uma banda...' },
+            { id: 'f11', answer: 'imaginaria', text: 'Quem (imaginar) ____ que...' }
+        ];
+
+        
+        // Armazenar os resultados para o download
+        let quizResultsText = "";
+        let finalScore = 0;
+        // 10 MC + 10 Match + 10 Fill (sendo que uma fill-in vale 2 pontos)
+        const totalScore = 31; 
+
+        // Lidar com a submissão do quiz
+        document.getElementById('quiz-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o recarregamento da página
+            
+            finalScore = 0;
+            quizResultsText = "Resultados da Ficha de Leitura:\n\n";
+            const feedbackContainer = document.getElementById('detailed-feedback');
+            feedbackContainer.innerHTML = ""; // Limpa feedback anterior
+            
+            let feedbackHTML = "";
+
+            // --- 1. Corrigir Escolha Múltipla ---
+            feedbackHTML += "<h3>I. Escolha Múltipla</h3>";
+            quizResultsText += "--- I. ESCOLHA MÚLTIPLA ---\n";
+            
+            mcQuestions.forEach((q, index) => {
+                const qNum = index + 1;
+                const userAnswerNode = document.querySelector(`input[name="${q.id}"]:checked`);
+                const questionText = `<strong>${qNum}. ${q.text}</strong><br>`;
+                quizResultsText += `${qNum}. ${q.text}\n`;
+                
+                if (userAnswerNode) {
+                    const userAnswer = userAnswerNode.value;
+                    const userAnswerText = userAnswerNode.parentElement.textContent;
+                    feedbackHTML += `<p>${questionText}A tua resposta: "${userAnswerText}" - `;
+                    quizResultsText += `A tua resposta: "${userAnswerText}"\n`;
+                    
+                    if (userAnswer === q.answer) {
+                        finalScore++;
+                        feedbackHTML += `<span class="correct">Correto!</span>`;
+                        quizResultsText += `Resultado: Correto\n\n`;
+                    } else {
+                        feedbackHTML += `<span class="incorrect">Incorreto.</span> (A resposta certa era: "${q.correctText}")`;
+                        quizResultsText += `Resultado: Incorreto (Certa: "${q.correctText}")\n\n`;
+                    }
+                } else {
+                    feedbackHTML += `<p>${questionText}Não respondida - <span class="incorrect">Incorreto.</span> (A resposta certa era: "${q.correctText}")`;
+                    quizResultsText += `A tua resposta: Não respondida\nResultado: Incorreto (Certa: "${q.correctText}")\n\n`;
+                }
+                feedbackHTML += `</p>`;
+            });
+
+            // --- 2. Corrigir Ligar Colunas ---
+            feedbackHTML += "<h3>II. Ligar Colunas</h3>";
+            quizResultsText += "\n--- II. LIGAR COLUNAS ---\n";
+
+            matchQuestions.forEach((q, index) => {
+                const qNum = index + 1;
+                const userAnswer = document.getElementById(q.id).value;
+                const questionText = `<strong>${qNum}. ${q.text}</strong><br>`;
+                quizResultsText += `${qNum}. ${q.text}\n`;
+                
+                feedbackHTML += `<p>${questionText}A tua resposta: `;
+                
+                if (userAnswer) {
+                    // Obter o texto da opção selecionada (ex: "Piri")
+                    const selectNode = document.getElementById(q.id);
+                    const userAnswerText = selectNode.options[selectNode.selectedIndex].text;
+                    
+                    feedbackHTML += `"${userAnswerText}" - `;
+                    quizResultsText += `A tua resposta: "${userAnswerText}"\n`;
+
+                    if (userAnswer === q.answer) {
+                        finalScore++;
+                        feedbackHTML += `<span class="correct">Correto!</span>`;
+                        quizResultsText += `Resultado: Correto\n\n`;
+                    } else {
+                        // Obter o texto da resposta correta
+                        const correctOptionText = selectNode.querySelector(`option[value="${q.answer}"]`).text;
+                        feedbackHTML += `<span class="incorrect">Incorreto.</span> (A resposta certa era: "${correctOptionText}")`;
+                        quizResultsText += `Resultado: Incorreto (Certa: "${correctOptionText}")\n\n`;
+                    }
+                } else {
+                    feedbackHTML += `Não respondida - <span class="incorrect">Incorreto.</span>`;
+                    quizResultsText += `A tua resposta: Não respondida\nResultado: Incorreto\n\n`;
+                }
+                feedbackHTML += `</p>`;
+            });
+
+            // --- 3. Corrigir Completar Espaços ---
+            feedbackHTML += "<h3>III. Completar Espaços</h3>";
+            quizResultsText += "\n--- III. COMPLETAR ESPAÇOS ---\n";
+            
+            fillQuestions.forEach((q, index) => {
+                const qNum = index + 1;
+                const questionText = `<strong>${qNum}. ${q.text.replace(/____/g, '...')}</strong><br>`;
+                quizResultsText += `${qNum}. ${q.text.replace(/____/g, '...')}\n`;
+                
+                // Lógica para perguntas com resposta dupla (como a f8-f9)
+                if (Array.isArray(q.answer)) {
+                    const userAnswer1 = document.getElementById('f8').value.trim().toLowerCase();
+                    const userAnswer2 = document.getElementById('f9').value.trim().toLowerCase();
+                    
+                    feedbackHTML += `<p>${questionText}A tua resposta: "${userAnswer1}", "${userAnswer2}" - `;
+                    quizResultsText += `A tua resposta: "${userAnswer1}", "${userAnswer2}"\n`;
+
+                    let correctCount = 0;
+                    if (userAnswer1 === q.answer[0]) {
+                        correctCount++;
+                    }
+                    if (userAnswer2 === q.answer[1]) {
+                        correctCount++;
+                    }
+                    
+                    if (correctCount === 2) {
+                        finalScore += 2; // Esta pergunta vale 2 pontos
+                        feedbackHTML += `<span class="correct">Correto!</span>`;
+                        quizResultsText += `Resultado: Correto\n\n`;
+                    } else if (correctCount === 1) {
+                        finalScore++; // 1 ponto
+                        feedbackHTML += `<span class="incorrect">Parcialmente correto.</span> (As respostas certas eram: "${q.answer[0]}", "${q.answer[1]}")`;
+                        quizResultsText += `Resultado: Parcialmente correto (Certas: "${q.answer[0]}", "${q.answer[1]}")\n\n`;
+                    } else {
+                        feedbackHTML += `<span class="incorrect">Incorreto.</span> (As respostas certas eram: "${q.answer[0]}", "${q.answer[1]}")`;
+                        quizResultsText += `Resultado: Incorreto (Certas: "${q.answer[0]}", "${q.answer[1]}")\n\n`;
+                    }
+                    
+                } else {
+                    // Lógica para perguntas de resposta única
+                    const userAnswer = document.getElementById(q.id).value.trim().toLowerCase();
+                    
+                    feedbackHTML += `<p>${questionText}A tua resposta: "${userAnswer}" - `;
+                    quizResultsText += `A tua resposta: "${userAnswer}"\n`;
+
+                    if (userAnswer === q.answer) {
+                        finalScore++;
+                        feedbackHTML += `<span class="correct">Correto!</span>`;
+                        quizResultsText += `Resultado: Correto\n\n`;
+                    } else {
+                        feedbackHTML += `<span class="incorrect">Incorreto.</span> (A resposta certa era: "${q.answer}")`;
+                        quizResultsText += `Resultado: Incorreto (Certa: "${q.answer}")\n\n`;
+                    }
+                }
+                feedbackHTML += `</p>`;
+            });
+
+
+            // --- Mostrar Resultados ---
+            document.getElementById('score-summary').textContent = `Obtiveste ${finalScore} em ${totalScore} pontos possíveis.`;
+            quizResultsText = `PONTUAÇÃO FINAL: ${finalScore} / ${totalScore}\n\n` + quizResultsText;
+            
+            feedbackContainer.innerHTML = feedbackHTML; // Adiciona todo o HTML de feedback
+            showView('results-view');
+        });
+
+        // --- LÓGICA DE DOWNLOAD DOS RESULTADOS ---
+        document.getElementById('download-results-button').addEventListener('click', function() {
+            const studentName = document.getElementById('student-name').value || "Não preenchido";
+            const studentYear = document.getElementById('student-year').value || "Não preenchido";
+            const studentClass = document.getElementById('student-class').value || "Não preenchido";
+            
+            if (studentName === "Não preenchido") {
+                alert("Por favor, preenche o teu nome para descarregar os resultados.");
+                return;
+            }
+
+            // Cria o cabeçalho do ficheiro
+            let fileContent = `RELATÓRIO DE LEITURA - A AVENTURA DE PIRI\n`;
+            fileContent += `=========================================\n\n`;
+            fileContent += `Nome: ${studentName}\n`;
+            fileContent += `Ano: ${studentYear}\n`;
+            fileContent += `Turma: ${studentClass}\n\n`;
+            fileContent += `=========================================\n`;
+            fileContent += `${quizResultsText}`; // Adiciona os resultados detalhados
+            
+            // Cria um "Blob" (objeto binário) com o conteúdo
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            
+            // Cria um link temporário para o download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            // Formata o nome do ficheiro (ex: Resultados_Piri_Ana_Silva.txt)
+            const safeName = studentName.replace(/ /g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+            link.download = `Resultados_Piri_${safeName}.txt`;
+            
+            // Simula o clique no link
+            document.body.appendChild(link); // Necessário para o Firefox
+            link.click();
+            document.body.removeChild(link); // Limpa o link
+        });
+
+
+        // --- INICIALIZAÇÃO ---
+        
+        // Iniciar na Vista do Livro
+        showView('book-view');
+        // Mostrar a primeira página (Capa)
+        showPage(0);
+        // Garantir que a ficha começa na página 1
+        showQuizPage(1);
+
+    </script>
+
+</body>
+</html>
